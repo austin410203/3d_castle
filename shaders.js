@@ -34,6 +34,11 @@ void fieldTaps(vec2 xz, out vec4 a, out vec4 b, out vec4 c, out vec4 d, out vec2
 vec4 fieldBi(vec2 xz) { vec4 a, b, c, d; vec2 f; fieldTaps(xz, a, b, c, d, f); return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }
 float wd(vec4 s) { return s.g > 0.003 ? s.g : -0.06; }
 float waterBi(vec2 xz) { vec4 a, b, c, d; vec2 f; fieldTaps(xz, a, b, c, d, f); return mix(mix(wd(a), wd(b), f.x), mix(wd(c), wd(d), f.x), f.y); }
+// four bilinear taps half a cell apart = wider tent filter → round contours instead of grid stair-steps
+vec4 fieldSmooth(vec2 xz) { float o = uCell * 0.5;
+  return 0.25 * (fieldBi(xz + vec2(-o, -o)) + fieldBi(xz + vec2(o, -o)) + fieldBi(xz + vec2(-o, o)) + fieldBi(xz + vec2(o, o))); }
+float waterSmooth(vec2 xz) { float o = uCell * 0.5;
+  return 0.25 * (waterBi(xz + vec2(-o, -o)) + waterBi(xz + vec2(o, -o)) + waterBi(xz + vec2(-o, o)) + waterBi(xz + vec2(o, o))); }
 `;
 
 const FIELD_VS = /* glsl */`
@@ -76,7 +81,7 @@ ${NOISE}
 ${FIELD_FS}
 varying vec4 vF; varying vec3 vW;`)
       .replace('#include <color_fragment>', `
-vec4 Fb = fieldBi(vW.xz);
+vec4 Fb = fieldSmooth(vW.xz);
 vec3 dryC = pow(vec3(0.96, 0.85, 0.64), vec3(2.2));
 vec3 wetC = pow(vec3(0.76, 0.62, 0.43), vec3(2.2));
 float grain = fbm(vW.xz * 2.3);
@@ -125,7 +130,7 @@ vec3 toLin(vec3 c) { return pow(c, vec3(2.2)); }
 void main() {
   float D = vD, foamV = vFoam;
   if (uOuter > 0.5) { if (abs(vW.x) < uHalf && abs(vW.z) < uHalf) discard; }
-  else { D = waterBi(vW.xz); foamV = fieldBi(vW.xz).a; }
+  else { D = waterSmooth(vW.xz); foamV = fieldBi(vW.xz).a; }
   if (D < 0.0) discard;
   vec2 q = vW.xz; float t = uTime, e = 0.18;
   vec2 drift = vec2(t * 0.32, t * 0.11);
@@ -161,7 +166,7 @@ export function simWaterMaterial(U) {
     vertexShader: /* glsl */`
 ${FIELD_VS}
 varying float vD; varying float vFoam; varying vec3 vW; varying vec3 vN;
-float surf(vec2 xz) { vec4 f = fieldAt(xz); return f.g > 0.003 ? f.r + f.g : f.r - 0.05; }
+float surf(vec2 xz) { vec4 f = fieldAt(xz); return f.g > 0.003 ? f.r + f.g : f.r + 0.004; }  // dry verts hug the sand; the fragment D test trims the edge
 void main() {
   vec4 F = fieldAt(position.xz);
   float y = surf(position.xz);

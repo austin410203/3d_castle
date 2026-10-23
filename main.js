@@ -4,8 +4,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { HorizontalTiltShiftShader } from 'three/addons/shaders/HorizontalTiltShiftShader.js';
-import { VerticalTiltShiftShader } from 'three/addons/shaders/VerticalTiltShiftShader.js';
 import { Sim, L, HALF, WAVE, swell } from './sim.js';
 import { makeUniforms } from './shaders.js';
 import { buildWorld } from './world.js';
@@ -47,9 +45,32 @@ const cursor = new Cursor(scene, sim, towers, decor);
 // ---------- post: tilt-shift miniature look + grade ----------
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const hts = new ShaderPass(HorizontalTiltShiftShader), vts = new ShaderPass(VerticalTiltShiftShader);
-hts.uniforms.r.value = vts.uniforms.r.value = 0.5;
+// separable tilt-shift: sharp band around the screen centre, blur grows towards top/bottom.
+// uAmount follows the camera tilt, so a straight-down view stays fully sharp.
+const TiltShift = {
+  uniforms: { tDiffuse: { value: null }, uDir: { value: new THREE.Vector2() }, uAmount: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 uDir; uniform float uAmount; varying vec2 vUv;
+    void main(){
+      float k = uAmount * smoothstep(0.18, 0.5, abs(vUv.y - 0.5));
+      if (k < 0.01) { gl_FragColor = texture2D(tDiffuse, vUv); return; }
+      vec2 st = uDir * k;
+      vec4 c = texture2D(tDiffuse, vUv) * 0.1633;
+      c += (texture2D(tDiffuse, vUv - st) + texture2D(tDiffuse, vUv + st)) * 0.1531;
+      c += (texture2D(tDiffuse, vUv - 2. * st) + texture2D(tDiffuse, vUv + 2. * st)) * 0.12245;
+      c += (texture2D(tDiffuse, vUv - 3. * st) + texture2D(tDiffuse, vUv + 3. * st)) * 0.0918;
+      c += (texture2D(tDiffuse, vUv - 4. * st) + texture2D(tDiffuse, vUv + 4. * st)) * 0.051;
+      gl_FragColor = c;
+    }`,
+};
+const hts = new ShaderPass(TiltShift), vts = new ShaderPass(TiltShift);
 composer.addPass(hts); composer.addPass(vts);
+function updateTiltShift() {
+  // polar 0 = looking straight down → no blur; fully tilted (~1 rad) → full miniature blur
+  const polar = new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target)).phi;
+  const amt = THREE.MathUtils.smoothstep(polar, 0.45, 0.95) * 2.2;
+  hts.uniforms.uAmount.value = vts.uniforms.uAmount.value = amt;
+}
 const grade = new ShaderPass({
   uniforms: { tDiffuse: { value: null } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
@@ -67,7 +88,7 @@ function resize() {
   const w = window.innerWidth || 1280, h = window.innerHeight || 720;
   renderer.setSize(w, h); composer.setSize(w, h);
   camera.aspect = w / h; camera.updateProjectionMatrix();
-  hts.uniforms.h.value = 3.6 / w; vts.uniforms.v.value = 3.6 / h;
+  hts.uniforms.uDir.value.set(1 / w, 0); vts.uniforms.uDir.value.set(0, 1 / h);
   parts.mat.uniforms.uScale.value = h * 0.9;
 }
 window.addEventListener('resize', resize); resize();
@@ -273,6 +294,7 @@ function frame(dt) {
     audio.lp.frequency.setTargetAtTime(500 + 900 * Math.min(1, crest), audio.ctx.currentTime, 0.3);
   }
   if (controls.enabled) controls.update();
+  updateTiltShift();
   composer.render();
 }
 
