@@ -1,0 +1,55 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #1d8fa6; font-family: 'Noto Sans TC', system-ui, sans-serif; color: #fff; -webkit-user-select: none; user-select: none; touch-action: none; }
+#app, #app canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+.title { position: fixed; left: 22px; top: 14px; pointer-events: none; text-shadow: 0 3px 0 rgba(120, 80, 30, .35), 0 6px 18px rgba(0, 0, 0, .25); }
+.title h1 { margin: 0; font: 800 46px/1 'Baloo 2', sans-serif; letter-spacing: 1px; color: #fffaf0; }
+.title h1 span { color: #e8443a; margin: 0 4px; }
+.title p { margin: -2px 0 0 3px; font-weight: 700; letter-spacing: 6px; font-size: 15px; opacity: .95; }
+
+.stars { position: fixed; right: 18px; top: 16px; display: flex; align-items: center; gap: 6px; padding: 6px 14px 6px 10px; border-radius: 999px; background: rgba(255, 250, 240, .92); color: #8a5a2b; font: 800 22px 'Baloo 2', sans-serif; box-shadow: 0 4px 0 rgba(150, 100, 50, .25), 0 8px 20px rgba(0, 0, 0, .15); transition: transform .25s; }
+.stars.pop { transform: scale(1.25); }
+
+.tools { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 8px; padding: 8px; border-radius: 22px; background: rgba(255, 250, 240, .9); box-shadow: 0 5px 0 rgba(150, 100, 50, .25), 0 10px 30px rgba(0, 0, 0, .2); }
+.tools button, .decor button, .panel button { border: 0; cursor: pointer; font-family: inherit; }
+.tools button { width: 70px; height: 66px; border-radius: 16px; background: transparent; color: #8a5a2b; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: background .15s, transform .15s; }
+.tools button i { font-style: normal; font-size: 26px; line-height: 1; }
+.tools button b { font-size: 13px; }
+.tools button:hover { background: rgba(232, 68, 58, .1); transform: translateY(-2px); }
+.tools button.on { background: #e8443a; color: #fff; box-shadow: 0 3px 0 #a92a22; }
+
+.decor { position: fixed; left: 50%; bottom: 104px; transform: translateX(-50%); display: none; gap: 6px; padding: 6px; border-radius: 16px; background: rgba(255, 250, 240, .88); box-shadow: 0 6px 20px rgba(0, 0, 0, .15); }
+.decor.show { display: flex; }
+.decor button { padding: 6px 10px; border-radius: 12px; background: transparent; color: #8a5a2b; font-size: 18px; display: flex; align-items: center; gap: 4px; }
+.decor button b { font-size: 12px; }
+.decor button.on { background: #f5d9a8; }
+
+.panel { position: fixed; right: 18px; top: 74px; width: 210px; padding: 12px 14px; border-radius: 18px; background: rgba(255, 250, 240, .88); color: #8a5a2b; font-size: 13px; font-weight: 700; box-shadow: 0 6px 20px rgba(0, 0, 0, .15); display: flex; flex-direction: column; gap: 8px; }
+.panel label { display: flex; align-items: center; gap: 8px; }
+.panel input[type=range] { flex: 1; accent-color: #e8443a; }
+.panel .chk { gap: 6px; font-weight: 500; }
+.panel .chk input { accent-color: #e8443a; }
+.panel .row { display: flex; gap: 6px; }
+.panel button { flex: 1; padding: 7px 6px; white-space: nowrap; border-radius: 10px; background: #fff; color: #8a5a2b; font-weight: 700; font-size: 12.5px; box-shadow: 0 2px 0 rgba(150, 100, 50, .3); }
+.panel button:hover { background: #ffe9c7; }
+.panel button.on { background: #e8443a; color: #fff; }
+
+.hint { position: fixed; left: 22px; bottom: 22px; margin: 0; font-size: 12.5px; opacity: .9; text-shadow: 0 1px 4px rgba(0, 0, 0, .5); max-width: 230px; pointer-events: none; }
+.toast { position: fixed; left: 50%; top: 22%; transform: translate(-50%, 10px); padding: 10px 22px; border-radius: 999px; background: rgba(255, 250, 240, .95); color: #8a5a2b; font-weight: 700; font-size: 17px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s; box-shadow: 0 8px 24px rgba(0, 0, 0, .2); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 760px) {
+  .title h1 { font-size: 32px; }
+  .title p { font-size: 12px; letter-spacing: 4px; }
+  .tools { gap: 2px; padding: 5px; bottom: 10px; max-width: calc(100% - 16px); }
+  .tools button { width: 54px; height: 56px; }
+  .tools button i { font-size: 21px; }
+  .tools button b { font-size: 11px; }
+  .decor { bottom: 82px; max-width: calc(100% - 16px); flex-wrap: wrap; justify-content: center; }
+  .panel { top: auto; bottom: 80px; right: 8px; width: 168px; padding: 9px 10px; font-size: 12px; gap: 5px; }
+  .decor.show ~ .panel { display: none; }
+  .panel label { display: none; }
+  .panel { width: auto; }
+  .hint { display: none; }
+  .stars { top: 12px; right: 10px; font-size: 18px; }
+}
